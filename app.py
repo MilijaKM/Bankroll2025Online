@@ -1,3 +1,12 @@
+# Na samom vrhu dodaj:
+CHAT_ID = "8349297056"   # ← OVDE STAVI BROJ IZ getUpdates
+
+# I obriši sve ovo (linije koje hvataju chat_id iz request.args – više nam ne trebaju):
+# if request.args.get("chat_id"):
+#     CHAT_ID = request.args.get("chat_id")
+#     posalji_telegram("Telegram povezan! Od sada stižu obaveštenja.")
+
+
 # app.py – sa automatskim Telegram obaveštenjima
 import csv
 from datetime import datetime, timedelta
@@ -139,7 +148,7 @@ Plotly.newPlot('graf', [{{x:x, y:y, type:'scatter', mode:'lines+markers', line:{
 if __name__ == "__main__":
     app.run()
 
-    
+
 
 
 
