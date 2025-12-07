@@ -1,4 +1,3 @@
-# app.py – KONAČNA VERZIJA – sve radi 100%
 import csv
 from datetime import datetime
 import pandas as pd
@@ -12,15 +11,14 @@ app.secret_key = "tata_je_boss_2025"
 FILENAME = "bankroll_history.csv"
 PASSWORD = "tatajeboss123"
 TOKEN = "8168519055:AAGT8HVra9dLF4MFsZXFcGnY6kpA11Lfhm8"
-CHAT_ID = "8349297056"   # ← OVDE STAVI SVOJ BROJ IZ getUpdates (koji si kopirao)
+CHAT_ID = "TVÔJ_BROJ_IZ_GETUPDATES"   # ← OVDE STAVI PRAVI BROJ (npr. 987654321)
 
-# Telegram funkcija
 def posalji(tekst):
-    if not CHAT_ID or CHAT_ID == "123456789":
+    if CHAT_ID == "TVÔJ_BROJ_IZ_GETUPDATES" or not CHAT_ID:
         return
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
-        requests.post(url, data={"chat_id": CHAT_ID, "text": tekst})
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                      data={"chat_id": CHAT_ID, "text": tekst})
     except:
         pass
 
@@ -40,10 +38,10 @@ def login():
             return redirect('/')
         return '<h1 style="color:red">Pogrešan password!</h1>'
     return '''
-    <form method=post style="text-align:center;margin-top:200px">
-        <h1> BANKROLL 2025</h1>
+    <form method=post style="text-align:center;margin-top:200px;font-family:Arial">
+        <h1 style="color:#0f0">BANKROLL 2025</h1>
         <input type=password name=password placeholder="Password" style="padding:15px;font-size:20px;width:300px"><br><br>
-        <button type=submit style="padding:15px 40px;font-size:20px">Uloguj se</button>
+        <button type=submit style="padding:15px 40px;font-size:20px;background:#0f0;color:#000;border:none">Uloguj se</button>
     </form>
     '''
 
@@ -55,7 +53,6 @@ def logout():
 @app.route("/", methods=["GET","POST"])
 @login_required
 def index():
-    global bankroll
     df = pd.read_csv(FILENAME)
     rows = df.values.tolist()
     bankroll = float(df["bankroll_posle"].iloc[-1])
@@ -68,11 +65,11 @@ def index():
             b = kvota - 1
             full = (b * p - (1 - p)) / b
             if full > 0:
-                kelly_msg = f"FULL {full*100:.2f}% → {round(bankroll*full):,} Kč | HALF {full*100/2:.2f}% → {round(bankroll*full/2):,} Kč"
+                kelly_msg = f"FULL KELLY: {full*100:.2f}% → {round(bankroll*full):,} Kč | HALF: {full*100/2:.2f}% → {round(bankroll*full/2):,} Kč"
             else:
-                kelly_msg = "NEMA VALUE!"
+                kelly_msg = "NEMA VALUE – PRESKOČI!"
         except:
-            kelly_msg = "Greška u unosu!"
+            kelly_msg = "Unesi ispravne brojeve!"
 
     if "liga" in request.form:
         liga = request.form["liga"]
@@ -83,57 +80,81 @@ def index():
         ishod = request.form["ishod"]
 
         ulog = round(bankroll * proc / 100)
-        profit = {"win": round(ulog*(kurz-1)), "loss": -ulog, "half": round(ulog*(kurz-1)/2), "void": 0}[ishod]
-        old = bankroll
+        profit = {"win": round(ulog * (kurz - 1)), "loss": -ulog, "half": round(ulog * (kurz - 1) / 2), "void": 0}[ishod]
+        old_bankroll = bankroll
         bankroll = round(bankroll + profit)
 
         with open(FILENAME, "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([datetime.now().strftime("%d.%m.%Y %H:%M"), liga, mec, komentar, proc, ulog, kurz, ishod, profit, bankroll])
 
-        if old < 200000 <= bankroll:
+        if old_bankroll < 200000 <= bankroll:
             posalji(f"ČESTITAMO! PREŠAO SI 200.000 Kč!\nBankroll: {bankroll:,} Kč")
 
         return redirect("/")
 
-    HTML = f"""<!DOCTYPE html>
-<html><head><title>Bankroll 2025</title><meta charset="utf-8">
-<style>body{{background:#121212;color:#0f0;text-align:center;padding:20px;font-family:Arial}}
-h1{{color:#0f0;font-size:3em}}input,select,button{{padding:12px;margin:8px;width:90%;max-width:400px;font-size:18px}}
-button{{background:#0f0;color:black;border:none;cursor:pointer}}</style>
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script></head><body>
-<h1><a href="/logout" style="float:right;color:#aaa;font-size:16px">Logout</a> BANKROLL {bankroll:,.0f} Kč</h1>
-<div id="graf" style="width:95%;height:500px;"></div>
-<script>
-var x = [{', '.join(f'"{r[0]}"' for r in rows)}];
-var y = [{', '.join(str(r[9]) for r in rows)}];
-Plotly.newPlot('graf', [{{x:x,y:y,type:'scatter',mode:'lines+markers',line:{{color:'#0f0',width:4}}}}],
-{{title:'Vývoj bankrollu',paper_bgcolor:'#121212',plot_bgcolor:'#121212',font:{{color:'#0f0'}}}});
-</script>
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Bankroll 2025</title>
+        <meta charset="utf-8">
+        <style>
+            body {{background:#121212;color:#0f0;text-align:center;font-family:Arial;padding:20px}}
+            h1 {{color:#0f0;font-size:3em}}
+            input,select,button {{width:90%;max-width:400px;padding:12px;margin:10px;font-size:18px}}
+            button {{background:#0f0;color:#000;border:none;cursor:pointer}}
+            table {{margin:20px auto;width:95%;border-collapse:collapse}}
+            th,td {{border:1px solid #0f0;padding:8px}}
+        </style>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    </head>
+    <body>
+        <h1><a href="/logout" style="float:right;font-size:16px;color:#aaa">Logout</a> BANKROLL {bankroll:,.0f} Kč</h1>
 
-<h2>KELLY KALKULATOR</h2>
-<form method=post><input name=kelly_kvota placeholder="Kvota" type=number step=0.01 required>
-<input name=kelly_procena placeholder="Procena %" type=number required><button>IZRAČUNAJ</button></form>
-<h2 style="color:yellow">{kelly_msg}</h2>
+        <div id="graf" style="width:95%;height:500px;margin:30px auto"></div>
+        <script>
+            var x = [{', '.join(f'"{r[0]}"' for r in rows)}];
+            var y = [{', '.join(str(r[9]) for r in rows)}];
+            Plotly.newPlot('graf', [{{x:x, y:y, type:'scatter', mode:'lines+markers', line:{{color:'#0f0',width:4}}}}],
+                           {{title:'Vývoj bankrollu', paper_bgcolor:'#121212', plot_bgcolor:'#121212', font:{{color:'#0f0'}}}});
+        </script>
 
-<h2>NOVA OKLADA</h2>
-<form method=post>
-<input name=liga placeholder="Liga/Sport" required><br>
-<input name=mec placeholder="Meč" required><br>
-<input name=komentar placeholder="Komentar"><br>
-<input name=proc type=number step=0.1 placeholder="% uloga" required><br>
-<input name=kurz type=number step=0.01 placeholder="Kurz" required><br>
-<select name=ishod><option>win</option><option>loss</option><option>half</option><option>void</option></select><br>
-<button>UNESI TIKET</button>
-</form>
+        <h2>KELLY KALKULATOR</h2>
+        <form method="post">
+            <input name="kelly_kvota" placeholder="Kvota" type="number" step="0.01" required>
+            <input name="kelly_procena" placeholder="Tvoja procena %" type="number" required>
+            <button>IZRAČUNAJ</button>
+        </form>
+        <h2 style="color:yellow">{kelly_msg}</h2>
 
-<h2>Poslednjih 10</h2>
-<table style="margin:auto;width:95%"><tr><th>Datum</th><th>Liga</th><th>Meč</th><th>Ishod</th><th>Profit</th><th>Bankroll</th></tr>
-{"".join(f'<tr style=\"color:{\"lime\" if r[7]==\"win\" else \"red\" if r[7]==\"loss\" else \"white\"}\"><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[7]}</td><td>{r[8]:+.0f}</td><td>{r[9]:,.0f}</td></tr>' for r in rows[-10:])}
-</table>
-</body></html>"""
-    return HTML
+        <h2>NOVA OKLADA</h2>
+        <form method="post">
+            <input name="liga" placeholder="Liga/Sport" required><br>
+            <input name="mec" placeholder="Meč" required><br>
+            <input name="komentar" placeholder="Komentar"><br>
+            <input name="proc" placeholder="% uloga" type="number" step="0.1" required><br>
+            <input name="kurz" placeholder="Kurz" type="number" step="0.01" required><br>
+            <select name="ishod">
+                <option>win</option>
+                <option>loss</option>
+                <option>half</option>
+                <option>void</option>
+            </select><br>
+            <button>UNESI TIKET</button>
+        </form>
+
+        <h2>Poslednjih 10 tiketa</h2>
+        <table>
+            <tr><th>Datum</th><th>Liga</th><th>Meč</th><th>Ishod</th><th>Profit</th><th>Bankroll</th></tr>
+            {''.join(f'<tr style="color: {"lime" if r[7]=="win" else "red" if r[7]=="loss" else "white"}">
+                <td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[7]}</td><td>{r[8]:+.0f}</td><td>{r[9]:,.0f}</td></tr>' for r in rows[-10:])}
+        </table>
+    </body>
+    </html>
+    """
+    return html
 
 if __name__ == "__main__":
     app.run()
 
-
+    
